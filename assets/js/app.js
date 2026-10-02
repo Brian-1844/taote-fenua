@@ -10,8 +10,8 @@ import {
 import { t, changerLangue, langueActuelle } from './i18n.js';
 import {
   esc, icone, pastille, pastilleHTML, etatOuverture, adresseCourte, telHref, mapsHref,
-  distanceKm, kmTexte, normaliser, ilYa, estPerime, TYPES, MODES,
-  JOURS_LONGS, ORDRE_JOURS, maintenantTahiti, heure,
+  distanceKm, kmTexte, normaliser, ilYa, estPerime, TYPES,
+  libelleType, libelleMode, libelleJour, ORDRE_JOURS, maintenantTahiti, heure,
 } from './ui.js';
 
 const app = document.getElementById('app');
@@ -43,8 +43,7 @@ async function router() {
     else await pageAnnuaire();
   } catch (err) {
     console.error(err);
-    app.innerHTML = `<div class="section"><div class="message message-erreur" role="alert">
-      Impossible de charger les données. Vérifiez votre connexion puis rechargez la page.</div></div>`;
+    app.innerHTML = `<div class="section"><div class="message message-erreur" role="alert">${esc(t('erreur_chargement'))}</div></div>`;
   }
   traduireStatique();
 }
@@ -62,7 +61,7 @@ function traduireStatique() {
 
 function boutonsLangue() {
   const l = langueActuelle();
-  return `<div class="langues" role="group" aria-label="Langue">
+  return `<div class="langues" role="group" aria-label="${esc(t('langue'))}">
     <button type="button" data-langue="fr" aria-pressed="${l === 'fr'}">FR</button>
     <button type="button" data-langue="ty" aria-pressed="${l === 'ty'}">Reo</button>
   </div>`;
@@ -96,7 +95,7 @@ async function pageAnnuaire() {
     `<button type="button" class="puce" data-type="${val}" aria-pressed="${filtres.type === val}">${esc(t(cle))}</button>`;
 
   app.innerHTML = `
-    <header class="entete">
+    <header class="entete entete-accueil">
       <div class="entete-ligne">
         <div>
           <div class="salut">${esc(t('salut'))}</div>
@@ -106,11 +105,11 @@ async function pageAnnuaire() {
       </div>
       <label class="champ-recherche">
         ${icone('recherche')}
-        <span class="cache">Rechercher</span>
+        <span class="cache">${esc(t('rechercher'))}</span>
         <input id="q" type="search" autocomplete="off" placeholder="${esc(t('recherche'))}" value="${esc(filtres.q)}">
       </label>
       <div class="ligne-lieu">
-        <label class="cache" for="commune">Commune</label>
+        <label class="cache" for="commune">${esc(t('commune'))}</label>
         <select id="commune" class="select-sombre">
           <option value="">${esc(t('toutes_communes'))}</option>
           ${communes.map((c) => `<option value="${esc(c)}" ${c === filtres.commune ? 'selected' : ''}>${esc(c)}</option>`).join('')}
@@ -121,7 +120,7 @@ async function pageAnnuaire() {
       </div>
     </header>
 
-    <div class="puces" role="group" aria-label="Filtres">
+    <div class="puces" role="group" aria-label="${esc(t('filtres'))}">
       <button type="button" class="puce" data-bascule="ouvert" aria-pressed="${filtres.ouvert}">${esc(t('ouvert_maintenant'))}</button>
       <button type="button" class="puce" data-bascule="sansRdv" aria-pressed="${filtres.sansRdv}">${esc(t('sans_rdv'))}</button>
       ${puceType('tous', 'tous')}
@@ -141,6 +140,7 @@ async function pageAnnuaire() {
 
     <div class="compte" id="compte" aria-live="polite"></div>
     <div class="liste" id="resultats"></div>
+    ${t('note_traduction') ? `<p class="source">${esc(t('note_traduction'))}</p>` : ''}
   `;
 
   brancherLangue();
@@ -173,7 +173,7 @@ function localiser(e) {
     afficherResultats();
     return;
   }
-  if (!navigator.geolocation) { toast("La localisation n'est pas disponible sur cet appareil."); return; }
+  if (!navigator.geolocation) { toast(t('geo_indispo')); return; }
   bouton.disabled = true;
   navigator.geolocation.getCurrentPosition(
     (pos) => {
@@ -184,7 +184,7 @@ function localiser(e) {
       bouton.setAttribute('aria-pressed', 'true');
       afficherResultats();
     },
-    () => { bouton.disabled = false; toast('Position refusée ou introuvable. Choisissez votre commune.'); },
+    () => { bouton.disabled = false; toast(t('geo_refus')); },
     { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
   );
 }
@@ -200,7 +200,7 @@ function filtrer(liste) {
       if (filtres.ouvert && o.ouvert !== true) return false;
       if (filtres.sansRdv && e.mode_accueil === 'sur_rdv') return false;
       if (q) {
-        const texte = normaliser([e.nom, e.specialite, TYPES[e.type], e.commune, e.ile].join(' '));
+        const texte = normaliser([e.nom, e.specialite, TYPES[e.type], t(`type_${e.type}`), e.commune, e.ile].join(' '));
         if (!q.split(/\s+/).every((mot) => texte.includes(mot))) return false;
       }
       return true;
@@ -217,7 +217,7 @@ function afficherResultats() {
   const zone = app.querySelector('#resultats');
   const compte = app.querySelector('#compte');
   if (!zone) return;
-  compte.textContent = t('resultats', res.length) + (filtres.position ? ' · triés par distance' : '');
+  compte.textContent = t('resultats', res.length) + (filtres.position ? ` · ${t('tries_distance')}` : '');
   if (!res.length) { zone.innerHTML = `<p class="vide">${esc(t('aucun_resultat'))}</p>`; return; }
   zone.innerHTML = res.map(({ e, d, o }) => carteEtab(e, d, o)).join('');
 }
@@ -229,22 +229,22 @@ function carteEtab(e, d, o) {
   if (p.direct && s && ['peu', 'beaucoup'].includes(s.niveau)) {
     const morceaux = [];
     if (s.attente_min != null) morceaux.push(`<b>≈ ${esc(s.attente_min)} min</b>`);
-    if (s.personnes != null) morceaux.push(`${esc(s.personnes)} personne${s.personnes > 1 ? 's' : ''}`);
+    if (s.personnes != null) morceaux.push(esc(t('personnes', s.personnes)));
     if (morceaux.length) detail = `<div class="carte-ligne"><span>${morceaux.join(' · ')}</span></div>`;
   }
-  const maj = p.direct && s?.maj_le ? ` · mis à jour ${ilYa(s.maj_le)}` : '';
+  const maj = p.direct && s?.maj_le ? ` · ${t('maj', ilYa(s.maj_le))}` : '';
   return `
     <a class="carte" href="#/e/${encodeURIComponent(e.id)}">
       <div class="carte-tete">
         <div>
           <div class="carte-nom">${esc(e.nom)}</div>
-          <div class="carte-meta">${esc(e.specialite || TYPES[e.type])}${d != null ? ` · ${kmTexte(d)}` : ''}</div>
+          <div class="carte-meta">${esc(libelleType(e))}${d != null ? ` · ${kmTexte(d)}` : ''}</div>
         </div>
         ${pastilleHTML(p)}
       </div>
       ${detail}
       <div class="carte-ligne"><span>${esc(adresseCourte(e))}</span>${e.tel_fixe || e.tel_mobile ? `<span>${esc(e.tel_fixe || e.tel_mobile)}</span>` : ''}</div>
-      <div class="carte-pied">${esc(o.texte)} · ${esc(MODES[e.mode_accueil] || '')}${esc(maj)}</div>
+      <div class="carte-pied">${esc(o.texte)} · ${esc(libelleMode(e.mode_accueil))}${esc(maj)}</div>
     </a>`;
 }
 
@@ -255,7 +255,7 @@ async function pageFiche(id) {
   const { etab: e, horsLigne } = await lireEtablissement(id);
   donnees.horsLigne = horsLigne;
   if (!e) {
-    app.innerHTML = `${barreRetour('#/', '')}<p class="vide">Cet établissement n'existe pas ou n'est plus référencé.</p>`;
+    app.innerHTML = `${barreRetour('#/', '')}<p class="vide">${esc(t('etab_introuvable'))}</p>`;
     return;
   }
   const o = etatOuverture(e.horaires);
@@ -267,19 +267,19 @@ async function pageFiche(id) {
   const blocStatut = (() => {
     if (e.mode_accueil === 'sur_rdv') {
       return `<div class="bloc-sombre"><div>${pastilleHTML(p)}</div>
-        <div class="separateur" style="border:0;padding:0">Consultations <b>uniquement sur rendez-vous</b>. Appelez pour obtenir un créneau.</div></div>`;
+        <div class="separateur" style="border:0;padding:0">${esc(t('rdv_uniquement'))}</div></div>`;
     }
     const chiffres = statutFrais && ['peu', 'beaucoup'].includes(s.niveau) && (s.attente_min != null || s.personnes != null)
       ? `<div class="grille2">
           ${s.attente_min != null ? `<div><div class="chiffre">≈ ${esc(s.attente_min)} min</div><div class="doux">${esc(t('temps_attente'))}</div></div>` : ''}
           ${s.personnes != null ? `<div><div class="chiffre">${esc(s.personnes)}</div><div class="doux">${esc(t('personnes_salle'))}</div></div>` : ''}
         </div>` : '';
-    const maj = statutFrais ? `<div class="doux" style="text-align:right">mis à jour par l'établissement<br>${esc(ilYa(s.maj_le))}</div>`
-      : `<div class="doux" style="text-align:right">pas de mise à jour récente</div>`;
+    const maj = statutFrais ? `<div class="doux" style="text-align:right">${esc(t('maj_par_etab'))}<br>${esc(ilYa(s.maj_le))}</div>`
+      : `<div class="doux" style="text-align:right">${esc(t('pas_de_maj'))}</div>`;
     return `<div class="bloc-sombre">
       <div class="entete-ligne">${pastilleHTML(p)}${maj}</div>
       ${chiffres}
-      <div class="separateur">${esc(MODES[e.mode_accueil])}${statutFrais && s.sans_rdv_aujourdhui === false && e.mode_accueil !== 'sur_rdv' ? " · <b>pas de consultation sans rendez-vous aujourd'hui</b>" : ''}</div>
+      <div class="separateur">${esc(libelleMode(e.mode_accueil))}${statutFrais && s.sans_rdv_aujourdhui === false && e.mode_accueil !== 'sur_rdv' ? ` · <b>${esc(t('pas_sans_rdv_auj'))}</b>` : ''}</div>
     </div>`;
   })();
 
@@ -287,13 +287,13 @@ async function pageFiche(id) {
     const plages = (e.horaires?.[j] || []).filter((x) => x?.[0] && x?.[1]);
     const texte = plages.length ? plages.map(([a, b]) => `${heure(a)} – ${heure(b)}`).join(' · ') : t('ferme');
     const cls = j === jour ? 'aujourdhui' : plages.length ? '' : 'ferme';
-    return `<div class="${cls}"><span>${esc(JOURS_LONGS[j])}${j === jour ? ` (${esc(t('aujourdhui'))})` : ''}</span><span>${esc(texte)}</span></div>`;
+    return `<div class="${cls}"><span>${esc(libelleJour(j))}${j === jour ? ` (${esc(t('aujourdhui'))})` : ''}</span><span>${esc(texte)}</span></div>`;
   }).join('');
 
   const tel = e.tel_fixe || e.tel_mobile;
 
   app.innerHTML = `
-    ${barreRetour('#/', e.specialite || TYPES[e.type])}
+    ${barreRetour('#/', libelleType(e))}
     <div class="titre-page">
       <h1>${esc(e.nom)}</h1>
       <div class="sous">${esc(e.commune)}${e.ile && e.ile !== 'Tahiti' ? ` · ${esc(e.ile)}` : ''} · ${esc(o.texte)}</div>
@@ -315,8 +315,8 @@ async function pageFiche(id) {
           ${e.repere ? `<div class="doux">${esc(e.repere)}</div>` : ''}
           ${e.infos ? `<div class="doux">${esc(e.infos)}</div>` : ''}
         </div></div>
-        ${e.tel_fixe ? `<a class="ligne-info" href="${esc(telHref(e.tel_fixe))}">${icone('tel')}<div><div class="fort">${esc(e.tel_fixe)}</div><div class="doux">Fixe</div></div></a>` : ''}
-        ${e.tel_mobile ? `<a class="ligne-info" href="${esc(telHref(e.tel_mobile))}">${icone('mobile')}<div><div class="fort">${esc(e.tel_mobile)}</div><div class="doux">Mobile</div></div></a>` : ''}
+        ${e.tel_fixe ? `<a class="ligne-info" href="${esc(telHref(e.tel_fixe))}">${icone('tel')}<div><div class="fort">${esc(e.tel_fixe)}</div><div class="doux">${esc(t('fixe'))}</div></div></a>` : ''}
+        ${e.tel_mobile ? `<a class="ligne-info" href="${esc(telHref(e.tel_mobile))}">${icone('mobile')}<div><div class="fort">${esc(e.tel_mobile)}</div><div class="doux">${esc(t('mobile'))}</div></div></a>` : ''}
         <a class="ligne-info" href="${esc(mapsHref(e))}" target="_blank" rel="noopener">${icone('sortie')}<div class="fort">${esc(t('ouvrir_maps'))}</div></a>
       </div>
     </section>
@@ -335,7 +335,7 @@ async function pageFiche(id) {
       <div class="grille3" id="tranches">
         <button type="button" class="choix-tranche" data-tranche="0-3">0 – 3</button>
         <button type="button" class="choix-tranche" data-tranche="4-8">4 – 8</button>
-        <button type="button" class="choix-tranche" data-tranche="9+">9 et +</button>
+        <button type="button" class="choix-tranche" data-tranche="9+">${esc(t('tranche_9plus'))}</button>
       </div>
       <div id="sig-info" class="carte-meta" aria-live="polite"></div>
     </section>` : ''}
@@ -350,7 +350,7 @@ async function pageFiche(id) {
       const freq = {};
       sig.forEach((x) => { freq[x.tranche] = (freq[x.tranche] || 0) + 1; });
       const top = Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0];
-      zoneInfo.textContent = `${t('signalements_recents', sig.length)} · le plus souvent : ${top.replace('-', ' à ').replace('+', ' et plus')} personnes`;
+      zoneInfo.textContent = `${t('signalements_recents', sig.length)} · ${t('le_plus_souvent', top)}`;
     };
     afficherSignalements();
     app.querySelectorAll('[data-tranche]').forEach((b) => b.addEventListener('click', async () => {
@@ -360,7 +360,7 @@ async function pageFiche(id) {
         toast(t('merci_signalement'));
         afficherSignalements();
       } catch (err) {
-        toast(err.message || "L'envoi a échoué.");
+        toast(t('envoi_echec'));
         app.querySelectorAll('[data-tranche]').forEach((x) => { x.disabled = false; });
       }
     }));
@@ -403,19 +403,19 @@ async function pageGardes(type) {
   app.innerHTML = `
     ${barreRetour('#/', t('gardes'))}
     <div class="titre-page"><h1>${esc(t(type === 'pharmacie' ? 'pharmacies_garde' : 'medecins_garde'))}</h1></div>
-    <nav class="onglets" aria-label="Type de garde">
+    <nav class="onglets" aria-label="${esc(t('type_garde'))}">
       <a href="#/gardes/medecin" ${type === 'medecin' ? 'aria-current="page"' : ''}>${esc(t('medecins'))}</a>
       <a href="#/gardes/pharmacie" ${type === 'pharmacie' ? 'aria-current="page"' : ''}>${esc(t('pharmacies'))}</a>
     </nav>
     <div class="bandeau bandeau-danger" role="note" style="margin-top:0">${icone('alerte', 22)}<div><b>${esc(t('urgence', CONFIG.NUMERO_URGENCE))}</b></div>
-      <a class="bouton-rond principal" style="background:#8E1F17" href="tel:${esc(CONFIG.NUMERO_URGENCE)}" aria-label="Appeler le ${esc(CONFIG.NUMERO_URGENCE)}">${icone('tel')}</a></div>
+      <a class="bouton-rond principal" style="background:#8E1F17" href="tel:${esc(CONFIG.NUMERO_URGENCE)}" aria-label="${esc(t('appeler_num', CONFIG.NUMERO_URGENCE))}">${icone('tel')}</a></div>
     ${noteDonnees()}
     ${!liste.length ? `<p class="vide">${esc(t('aucune_garde'))}</p>` : ''}
     ${miens.length ? `<div class="liste" style="margin-top:12px">${miens.map((g) => carte(g, true)).join('')}</div>` : ''}
-    ${autres.length ? `<div class="titre-section">${esc(miens.length ? t('autres_secteurs') : 'En ce moment')}</div><div class="liste">${autres.map((g) => carte(g, false)).join('')}</div>` : ''}
-    ${aVenir.length ? `<div class="titre-section">Prochainement</div><div class="liste">${aVenir.map((g) => carte(g, false)).join('')}</div>` : ''}
+    ${autres.length ? `<div class="titre-section">${esc(miens.length ? t('autres_secteurs') : t('en_ce_moment'))}</div><div class="liste">${autres.map((g) => carte(g, false)).join('')}</div>` : ''}
+    ${aVenir.length ? `<div class="titre-section">${esc(t('prochainement'))}</div><div class="liste">${aVenir.map((g) => carte(g, false)).join('')}</div>` : ''}
     ${sources.length ? `<p class="source">${esc(t('source'))} : ${esc(sources.join(', '))}</p>` : ''}
-    ${!commune && liste.length ? `<p class="source">Astuce : choisissez votre commune dans l'annuaire pour voir votre secteur en premier.</p>` : ''}
+    ${!commune && liste.length ? `<p class="source">${esc(t('astuce_commune'))}</p>` : ''}
   `;
 }
 

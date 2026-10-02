@@ -8,7 +8,11 @@ import {
   motDePasseOublie, changerMotDePasse, mesEtablissements, publierStatut, enregistrerFiche,
   reinitialiserDemo,
 } from './api.js';
+import { forcerLangue } from './i18n.js';
 import { esc, icone, NIVEAUX, MODES, JOURS_LONGS, ORDRE_JOURS, ilYa, estPerime, TYPES } from './ui.js';
+
+// L'espace pro reste en français, quel que soit le choix fait dans l'annuaire
+forcerLangue('fr');
 
 const zone = document.getElementById('pro');
 

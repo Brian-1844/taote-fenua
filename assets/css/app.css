@@ -212,3 +212,33 @@ a.ligne-info:hover { color: var(--encre); }
 .squelette { background: linear-gradient(90deg, var(--trait-leger), #f7fafa, var(--trait-leger)); background-size: 200% 100%; animation: brille 1.2s infinite; border-radius: var(--rayon); height: 112px; }
 @keyframes brille { to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .squelette { animation: none; } }
+
+/* =====================================================================
+   Fond végétal : nono (Morinda citrifolia) et fougère, dessin au trait
+   Pour l'enlever : supprimez ce bloc. Pour l'atténuer : baissez --motif.
+   ===================================================================== */
+:root { --motif: 1; --carte-fond: rgba(255, 255, 255, 0.9); }
+
+body::before {
+  content: ''; position: fixed; z-index: -1; pointer-events: none;
+  top: 0; bottom: 0; left: 50%; transform: translateX(-50%); width: min(100%, 560px);
+  opacity: var(--motif);
+  background:
+    url('../img/fond-gauche.svg') left bottom / 390px auto no-repeat,
+    url('../img/fond-droite.svg') right bottom / 390px auto no-repeat;
+}
+
+.entete {
+  background-image: url('../img/entete-nono.svg'), url('../img/entete-fougere.svg');
+  background-repeat: no-repeat;
+  background-position: right top, left top;
+  background-size: 390px auto;
+}
+/* Sur l'accueil, on laisse respirer le rameau de nono entre le titre et la recherche */
+.entete-accueil .entete-ligne { margin-bottom: 52px; }
+
+/* Cartes légèrement translucides pour laisser deviner le dessin */
+.carte, .bloc { background: var(--carte-fond); }
+.onglets a[aria-current="page"] { background: var(--surface); }
+.select-sombre, .bouton-contour-sombre { background-color: var(--sombre); }
+.bouton-contour-sombre[aria-pressed="true"] { background-color: var(--surface); }

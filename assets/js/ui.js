@@ -2,6 +2,7 @@
 // Petites fonctions d'affichage partagées par l'app et l'espace pro
 // =====================================================================
 import { CONFIG } from './config.js';
+import { t, langueActuelle } from './i18n.js';
 
 /** Échappe le texte avant de l'insérer dans le HTML (évite les injections) */
 export function esc(v) {
@@ -53,25 +54,25 @@ export const heure = (hhmm) => String(hhmm).replace(/^0(\d)/, '$1');
 export function etatOuverture(horaires) {
   const { jour, minutes } = maintenantTahiti();
   const plages = (horaires?.[jour] || []).filter((p) => p?.[0] && p?.[1]);
-  if (!horaires || !Object.keys(horaires).length) return { ouvert: null, texte: 'Horaires non communiqués' };
+  if (!horaires || !Object.keys(horaires).length) return { ouvert: null, texte: t('horaires_inconnus') };
   for (const [deb, fin] of plages) {
     if (minutes >= enMinutes(deb) && minutes < enMinutes(fin)) {
-      return { ouvert: true, texte: `Ouvert jusqu'à ${heure(fin)}` };
+      return { ouvert: true, texte: t('ouvert_jusqua', heure(fin)) };
     }
   }
   const prochaine = plages.find(([deb]) => enMinutes(deb) > minutes);
-  if (prochaine) return { ouvert: false, texte: `Fermé · ouvre à ${heure(prochaine[0])}` };
-  return { ouvert: false, texte: "Fermé pour aujourd'hui" };
+  if (prochaine) return { ouvert: false, texte: t('ferme_ouvre', heure(prochaine[0])) };
+  return { ouvert: false, texte: t('ferme_auj') };
 }
 
 /** Texte « il y a 8 min » */
 export function ilYa(iso) {
   const min = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
-  if (min < 1) return "à l'instant";
-  if (min < 60) return `il y a ${min} min`;
+  if (min < 1) return t('a_linstant');
+  if (min < 60) return t('ilya_min', min);
   const h = Math.floor(min / 60);
-  if (h < 24) return `il y a ${h} h`;
-  return `il y a ${Math.floor(h / 24)} j`;
+  if (h < 24) return t('ilya_h', h);
+  return t('ilya_j', Math.floor(h / 24));
 }
 
 /**
@@ -81,12 +82,18 @@ export function ilYa(iso) {
 export function pastille(etab) {
   const s = etab.statut;
   const ouverture = etatOuverture(etab.horaires);
-  if (s?.niveau === 'ferme' && !estPerime(s)) return { cls: 'ferme', label: 'Fermé exceptionnellement', direct: true };
-  if (ouverture.ouvert === false) return { cls: 'ferme', label: 'Fermé', direct: false };
-  if (etab.mode_accueil === 'sur_rdv') return { cls: 'rdv', label: 'Sur RDV', direct: false };
-  if (!s || estPerime(s)) return { cls: 'inconnu', label: 'Attente non communiquée', direct: false };
-  return { ...NIVEAUX[s.niveau], direct: true };
+  if (s?.niveau === 'ferme' && !estPerime(s)) return { cls: 'ferme', label: t('niveau_ferme'), direct: true };
+  if (ouverture.ouvert === false) return { cls: 'ferme', label: t('p_ferme'), direct: false };
+  if (etab.mode_accueil === 'sur_rdv') return { cls: 'rdv', label: t('p_rdv'), direct: false };
+  if (!s || estPerime(s)) return { cls: 'inconnu', label: t('p_inconnu'), direct: false };
+  return { cls: NIVEAUX[s.niveau].cls, label: t(`niveau_${s.niveau}`), direct: true };
 }
+
+/** Libellés traduits (le public voit la langue choisie) */
+export const libelleMode = (mode) => t(`mode_${mode}`);
+export const libelleJour = (jour) => t(`jour_${jour}`);
+/** En reo, on affiche le type traduit ; la spécialité saisie reste en français */
+export const libelleType = (e) => (langueActuelle() === 'fr' && e.specialite ? e.specialite : t(`type_${e.type}`));
 
 export function estPerime(statut) {
   if (!statut?.maj_le) return true;
@@ -100,7 +107,7 @@ export function pastilleHTML(p) {
 /** Ligne d'adresse façon Polynésie : « PK 15,2 côté mer · Punaauia » */
 export function adresseCourte(e) {
   const morceaux = [];
-  if (e.pk) morceaux.push(`PK ${e.pk}${e.cote ? ` côté ${e.cote}` : ''}`);
+  if (e.pk) morceaux.push(`PK ${e.pk}${e.cote ? ` ${t(`cote_${e.cote}`)}` : ''}`);
   else if (e.adresse) morceaux.push(e.adresse);
   morceaux.push(e.commune);
   if (e.ile && e.ile !== 'Tahiti') morceaux.push(e.ile);

@@ -1,6 +1,6 @@
 // Service worker : permet d'ouvrir l'app sans connexion (îles, coupures).
 // Changez VERSION à chaque mise en ligne pour forcer la mise à jour.
-const VERSION = 'taote-v1';
+const VERSION = 'taote-v3';
 const COQUILLE = [
   './', 'index.html', 'pro.html', 'manifest.webmanifest',
   'assets/css/app.css',
@@ -9,6 +9,7 @@ const COQUILLE = [
   'assets/fonts/dm-sans-latin-400-normal.woff2', 'assets/fonts/dm-sans-latin-500-normal.woff2',
   'assets/fonts/dm-sans-latin-700-normal.woff2', 'assets/fonts/bricolage-grotesque-latin-700-normal.woff2',
   'icons/icon.svg', 'icons/icon-192.png', 'data/demo.json',
+  'assets/img/entete-nono.svg', 'assets/img/entete-fougere.svg', 'assets/img/fond-gauche.svg', 'assets/img/fond-droite.svg',
 ];
 
 self.addEventListener('install', (e) => {
